@@ -631,7 +631,8 @@ markdown.section = function (buffer, TSNode, text, range)
 			break;
 		end
 
-		_, _, org_end, _ = next_sibling:range();
+		local _, _, sibling_end_row, _ = next_sibling:range();
+		org_end = sibling_end_row - 1;
 		next_sibling = next_sibling:next_sibling();
 	end
 

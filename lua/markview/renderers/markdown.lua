@@ -1555,6 +1555,26 @@ markdown.table = function (buffer, item)
 	local config = spec.get({ "markdown", "tables" }, { fallback = nil, eval_args = { buffer, item } });
 	local range = item.range;
 
+	local function org_indent_width (row)
+		local width = 0;
+
+		for _, mark in ipairs(vim.api.nvim_buf_get_extmarks(buffer, markdown.ns, { row, 0 }, { row, -1 }, { details = true })) do
+			local mark_col = mark[3];
+			local details = mark[4];
+
+			if mark_col == 0 and details.virt_text_pos == "inline" and details.virt_text then
+				for _, chunk in ipairs(details.virt_text) do
+					width = width + vim.fn.strdisplaywidth(chunk[1] or "");
+				end
+			end
+		end
+
+		return width;
+	end
+
+	local top_indent = org_indent_width(range.row_start);
+	local bottom_indent = org_indent_width(math.max(range.row_start, range.row_end - 1));
+
 	local is_wrapped = false;
 
 	if not config then
@@ -1770,7 +1790,7 @@ markdown.table = function (buffer, item)
 				local prev_line = range.row_start == 0 and 0 or #vim.api.nvim_buf_get_lines(buffer, range.row_start - 1, range.row_start, false)[1];
 
 				if config.use_virt_lines == true then
-					table.insert(tmp, 1, { string.rep(" ", range.col_start) });
+					table.insert(tmp, 1, { string.rep(" ", range.col_start + top_indent) });
 				elseif range.row_start > 0 and prev_line < range.col_start then
 					table.insert(tmp, 1, { string.rep(" ", math.max(0, range.col_start - prev_line)) });
 				end
@@ -1824,7 +1844,7 @@ markdown.table = function (buffer, item)
 
 				if config.use_virt_lines == true then
 					table.insert(tmp, 1, {
-						string.rep(" ", range.col_start)
+						string.rep(" ", range.col_start + top_indent)
 					});
 				elseif range.row_start > 0 and prev_line < range.col_start then
 					table.insert(tmp, 1, {
@@ -2368,7 +2388,7 @@ markdown.table = function (buffer, item)
 				local next_line = range.row_end == vim.api.nvim_buf_line_count(buffer) and 0 or #vim.api.nvim_buf_get_lines(buffer, range.row_end, range.row_end + 1, false)[1];
 
 				if config.use_virt_lines == true then
-					table.insert(tmp, 1, { string.rep(" ", range.col_start) });
+					table.insert(tmp, 1, { string.rep(" ", range.col_start + bottom_indent) });
 				elseif next_line < vim.api.nvim_buf_line_count(buffer) and  next_line < range.col_start then
 					table.insert(tmp, 1, { string.rep(" ", math.max(0, range.col_start - next_line)) });
 				end
@@ -2422,7 +2442,7 @@ markdown.table = function (buffer, item)
 				local next_line = range.row_end == vim.api.nvim_buf_line_count(buffer) and 0 or #vim.api.nvim_buf_get_lines(buffer, range.row_end, range.row_end + 1, false)[1];
 
 				if config.use_virt_lines == true then
-					table.insert(tmp, 1, { string.rep(" ", range.col_start) });
+					table.insert(tmp, 1, { string.rep(" ", range.col_start + bottom_indent) });
 				elseif next_line < vim.api.nvim_buf_line_count(buffer) and next_line < range.col_start then
 					table.insert(tmp, 1, { string.rep(" ", math.max(0, range.col_start - next_line)) });
 				end
